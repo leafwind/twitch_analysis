@@ -47,6 +47,14 @@ def follow_status(channel, user):
         msg = h1(msg)
         return msg
 
+@application.route('/<channel>/list_all_current_users')
+def get_all_users(channel):
+    from twitch_utils import get_current_users
+    all_users = get_current_users(channel)
+    msg = "<br />".join(all_users)
+    msg = h1(msg)
+    return msg
+
 @application.route('/post/<int:post_id>')
 def show_post(post_id):
     return 'Post %d' % post_id
