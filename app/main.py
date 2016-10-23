@@ -5,6 +5,7 @@ import json
 import time
 import calendar
 
+from handlers.get_channel_stats_handler import get_stats
 application = Flask(__name__)
 application.config['PROPAGATE_EXCEPTIONS'] = True
 
@@ -54,6 +55,11 @@ def get_all_users(channel):
     msg = "<br />".join(all_users)
     msg = h1(msg)
     return msg
+
+@application.route('/<channel>/stats')
+def get_stats_handler(channel):
+    result = get_stats(channel)
+    return result
 
 @application.route('/post/<int:post_id>')
 def show_post(post_id):
