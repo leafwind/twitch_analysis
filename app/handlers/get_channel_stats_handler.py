@@ -2,6 +2,10 @@
 import sqlite3
 import logging
 import time
+import json
+
+with open('config.json') as fp:
+    CONFIG = json.load(fp)
 
 html_newline = '<br />'
 
@@ -14,7 +18,8 @@ def style_color(s, color='blue'):
     return "<span style='color:{}'>".format(color) + s + "</span>"
 
 def get_stats(channel):
-    conn = sqlite3.connect("/home/leafbot/git/SimpleTwitchBot/{}.db".format(channel))
+    global CONFIG
+    conn = sqlite3.connect(CONFIG['db'])
     c = conn.cursor()
     c.execute('''select id, game, created_at, end_at from stream where channel = \'{}\';'''.format(channel))
     result = c.fetchall()
