@@ -13,6 +13,10 @@ def h1(s):
     return "<h1>" + s + "</h1>"
 def h2(s):
     return "<h2>" + s + "</h2>"
+def ul(s):
+    return "<ul>" + s + "</ul>"
+def li(s):
+    return "<li>" + s + "</li>"
 
 def style_color(s, color='blue'):
     return "<span style='color:{}'>".format(color) + s + "</span>"
@@ -44,15 +48,33 @@ def get_stats(channel):
         result = c.fetchall()
         streams[_id]['max_chat_per_min'] = result[0][0]
         streams[_id]['avg_chat_per_min'] = result[0][1]
+
+    c.execute('''select user, count(1) from chat where channel = \'{}\' group by user order by count(1) desc limit 10;'''.format(channel))
+    result = c.fetchall()
+    streams[_id]['top_chat_users'] = []
+    for r in result:
+        streams[_id]['top_chat_users'].append((r[0], r[1]))
+
+    c.execute('''select msg, count(1) from chat where channel = \'{}\' group by msg order by count(1) desc limit 10;'''.format(channel))
+    result = c.fetchall()
+    streams[_id]['top_chat_msgs'] = []
+    for r in result:
+        streams[_id]['top_chat_msgs'].append((r[0], r[1]))
         
     conn.close()
 
-    def ul(s):
-        return "<ul>" + s + "</ul>"
-    def li(s):
-        return "<li>" + s + "</li>"
+    channel_html = []
+    top_chat_users = ["{}: {}".format(u, c) for (u, c) in streams[_id]['top_chat_users']]
+    top_chat_users = "".join([li(s) for s in top_chat_users])
+    top_chat_users = ul("top_chat_users: " + top_chat_users)
+    channel_html.append(top_chat_users)
 
-    stream_list = []
+    top_chat_msgs = ["{}: {}".format(m.encode('utf-8'), c) for (m, c) in streams[_id]['top_chat_msgs']]
+    top_chat_msgs = "".join([li(s) for s in top_chat_msgs])
+    top_chat_msgs = ul("top_chat_msgs: " + top_chat_msgs)
+    channel_html.append(top_chat_msgs)
+
+    stream_html = []
     for _id in streams:
         l = [
             "遊戲: {}".format(streams[_id]['game']),
@@ -66,8 +88,8 @@ def get_stats(channel):
         ]
         tmp = "".join([li(s) for s in l])
         tmp = ul("stream id: {}".format(_id) + tmp)
-        stream_list.append(tmp)
+        stream_html.append(tmp)
 
-    msg = html_newline.join(stream_list)
+    msg = html_newline.join(channel_html + stream_html)
     return h2(msg)
             
