@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 import sqlite3
+import numpy as np
+import pandas as pd
 import logging
 import time
 import json
@@ -30,84 +32,103 @@ def td(s):
 def style_color(s, color='blue'):
     return "<span style='color:{}'>".format(color) + s + "</span>"
 
-def get_stats(channel):
+
+def get_stream_info(channel, n_top_chatters, n_top_msgs):
     global CONFIG
+    stream_info = {}
     conn = sqlite3.connect(CONFIG['db'])
-    c = conn.cursor()
-    c.execute('''select id, game, created_at, end_at from stream where channel = \'{}\';'''.format(channel))
-    result = c.fetchall()
-    streams = {}
-    now = int(time.time())
-    for r in result:
-        streams[r[0]] = {
-            'game': r[1],
-            'created_at': r[2],
-            'end_at': r[3] if r[3] > 0 else now,
+    streams = pd.read_sql_query("select id, game, created_at, end_at from stream where channel =\'{}\' order by created_at desc".format(channel), conn)
+
+    popularity = pd.read_sql_query("select n_user, ts from channel_popularity where channel = \'{}\'".format(channel), conn)
+    chat = pd.read_sql_query("select user, msg, ts from chat where channel = \'{}\'".format(channel), conn)
+
+    for index, stream in streams.iterrows():
+        stream['end_at'] = stream['end_at'] if stream['end_at'] > 0 else int(time.time())
+        p = popularity[(popularity.ts >= stream['created_at']) & (popularity.ts <= stream['end_at'])]
+        c = chat[(chat.ts >= stream['created_at']) & (chat.ts <= stream['end_at'])]
+        n_total_chat = c['user'].count()
+
+        def group_by_min(df, ind, col):
+            return int(df[col].loc[ind]/60)
+
+        chat_groupby_min = c['ts'].groupby(lambda x: group_by_min(c, x, 'ts')).count()
+        max_chat_by_min = chat_groupby_min.max()
+        mean_chat_by_min = chat_groupby_min.mean()
+        std_chat_by_min = chat_groupby_min.std()
+
+        created_at = stream['created_at']
+        end_at = stream['end_at']
+        max_user = p['n_user'].max()
+        mean_user = p['n_user'].mean()
+        unique_chat_user = c['user'].nunique()
+
+        chat_groupby_user = c[['user', 'ts']].groupby('user', as_index=False).count()
+        top_chatters = chat_groupby_user.nlargest(n_top_chatters, columns='ts')['user'].tolist()
+        top_chatters = ", ".join(top_chatters)
+        top_chatters = top_chatters.encode('utf-8')
+                    
+        chat_groupby_msg = c[['msg', 'ts']].groupby('msg', as_index=False).count()
+        top_msgs = chat_groupby_msg.nlargest(n_top_msgs, columns='ts')['msg'].tolist()
+        top_msgs = ", ".join(top_msgs)
+        top_msgs = top_msgs.encode('utf-8')
+
+        stream_info[stream['id']] = {
+            'game': stream['game'].encode('utf-8'),
+            'created_at': '{}'.format(time.strftime("%Y-%m-%d %H:%M", time.gmtime(created_at + 8 * 3600))),
+            'end_at': '{}'.format(time.strftime("%Y-%m-%d %H:%M", time.gmtime(end_at + 8 * 3600))),
+            'duration_min': '{}'.format(int((end_at - created_at) / 60)),
+            'n_total_chat': str(n_total_chat),
+            'max_user': str(max_user),
+            'mean_user': str(int(mean_user)),
+            'unique_chat_user': str(unique_chat_user),
+            'interactivity': '{:.0%}'.format(1.0 * unique_chat_user / max_user),
+            'max_chat_by_min': str(max_chat_by_min),
+            'mean_chat_by_min': '{:.1f}'.format(mean_chat_by_min),
+            'cov_chat_by_min': '{:.0%}'.format(std_chat_by_min / mean_chat_by_min),
+            'top_chatters': top_chatters,
+            'top_msgs': top_msgs,
         }
-    streams = OrderedDict(sorted(streams.items(), key=lambda t: t[1]["created_at"], reverse=True))
-    for _id in streams:
-        c.execute('''select avg(n_user) from channel_popularity where channel = \'{}\' and ts > {} and ts < {};'''.format(channel, streams[_id]['created_at'], streams[_id]['end_at']))
-        result = c.fetchall()
-        streams[_id]['avg_view_user'] = result[0][0]
+        stream_info = OrderedDict(sorted(stream_info.items(), key=lambda t: t[1]["created_at"], reverse=True))
+    conn.clos()
+    return stream_info
 
-        c.execute('''select count(distinct(user)) from chat where channel = \'{}\' and ts > {} and ts < {};'''.format(channel, streams[_id]['created_at'], streams[_id]['end_at']))
-        result = c.fetchall()
-        streams[_id]['distinct_chat_user'] = result[0][0]
+def get_stats(channel):
+    header_translation = [
+        ('game', '遊戲名稱'),
+        ('created_at', '開始時間'),
+        ('end_at', '結束時間'),
+        ('duration_min', '實況時間(分)'),
+        ('n_total_chat', '總發言數量'),
+        ('mean_chat_by_min', '平均每分鐘發言'),
+        ('max_chat_by_min', '最大每分鐘發言'),
+        ('mean_user', '平均觀眾'),
+        ('max_user', '最多同時觀眾'),
+        ('unique_chat_user', '不重複發言觀眾'),
+        ('interactivity', '互動比例(發言/全部觀眾)'),
+        ('cov_chat_by_min', '觀眾情緒起伏指數'),
+        ('top_chatters', '最常發言觀眾'),
+        ('top_msgs', '最多重複訊息'),
+    ]
+    stream_info = get_stream_info(channel, n_top_chatters=5, n_top_msgs=10)
 
-        c.execute('''select max(c), avg(c) from (select ts/60 t, count(1) as c from chat where channel = \'{}\' and ts > {} and ts < {} group by ts/60) as tmp;'''.format(channel, streams[_id]['created_at'], streams[_id]['end_at']))
-        result = c.fetchall()
-        streams[_id]['max_chat_per_min'] = result[0][0]
-        streams[_id]['avg_chat_per_min'] = result[0][1]
+    html_str = []
+    row = []
+    for header in header_translation:
+        row.append(th(header[1]))
+    html_str.append(tr("".join(row)))
+    for _id in stream_info:
+        row = []
+        for header in header_translation:
+            row.append(td(stream_info[_id][header[0]]))
+        html_str.append(tr("".join(row)))
+    html_str = table("".join(html_str), border=1, style="font-size:24px;")
+    return html_str
 
-    c.execute('''select user, count(1) from chat where channel = \'{}\' group by user order by count(1) desc limit 10;'''.format(channel))
-    result = c.fetchall()
-    streams[_id]['top_chat_users'] = []
-    for r in result:
-        streams[_id]['top_chat_users'].append((r[0], r[1]))
+def whatisthis(s):
+    if isinstance(s, str):
+        print "ordinary string: {}".format(s)
+    elif isinstance(s, unicode):
+        print "unicode string: {}".format(s.encode('utf-8'))
+    else:
+        print "not a string"
 
-    c.execute('''select msg, count(1) from chat where channel = \'{}\' group by msg order by count(1) desc limit 10;'''.format(channel))
-    result = c.fetchall()
-    streams[_id]['top_chat_msgs'] = []
-    for r in result:
-        streams[_id]['top_chat_msgs'].append((r[0], r[1]))
-        
-    conn.close()
-
-    channel_html = []
-    top_chat_users = ["{}: {}".format(u, c) for (u, c) in streams[_id]['top_chat_users']]
-    top_chat_users = "".join([li(s) for s in top_chat_users])
-    top_chat_users = ul("top_chat_users: " + top_chat_users)
-    channel_html.append(top_chat_users)
-
-    top_chat_msgs = ["{}: {}".format(m.encode('utf-8'), c) for (m, c) in streams[_id]['top_chat_msgs']]
-    top_chat_msgs = "".join([li(s) for s in top_chat_msgs])
-    top_chat_msgs = ul("top_chat_msgs: " + top_chat_msgs)
-    channel_html.append(top_chat_msgs)
-
-    stream_html = []
-    stream_html.append(h1("最近實況記錄"))
-
-    header = ["遊戲", "開始", "結束", "持續時間(min)", "平均觀看人數", "不重複聊天人數", "每分鐘最多對話次數", "每分鐘平均對話次數"]
-    header = [th(h) for h in header]
-    row = tr("".join(header))
-    stream_html.append(row)
-
-    for _id in streams:
-        l = [
-            "{}".format(streams[_id]['game']),
-            "{}".format(time.strftime("%Y-%m-%d %H:%M", time.gmtime(streams[_id]['created_at'] + 8 * 3600))),
-            "{}".format(time.strftime("%Y-%m-%d %H:%M", time.gmtime(streams[_id]['end_at'] + 8 * 3600))),
-            "{}".format((streams[_id]['end_at'] - streams[_id]['created_at']) / 60),
-            "{}".format(int(streams[_id]['avg_view_user'])),
-            "{}".format(streams[_id]['distinct_chat_user']),
-            "{}".format(streams[_id]['max_chat_per_min']),
-            "{:.1f}".format(streams[_id]['avg_chat_per_min']),
-        ]
-        row = "".join([td(col) for col in l])
-        row = tr(row)
-        stream_html.append(row)
-    stream_html = table("".join(stream_html), border=1, style="font-size:24px;")
-
-    msg = html_newline.join(channel_html) + stream_html
-    return h2(msg)
-            
