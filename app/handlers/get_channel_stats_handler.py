@@ -3,6 +3,7 @@ import sqlite3
 import logging
 import time
 import json
+from collections import OrderedDict
 
 with open('config.json') as fp:
     CONFIG = json.load(fp)
@@ -17,6 +18,14 @@ def ul(s):
     return "<ul>" + s + "</ul>"
 def li(s):
     return "<li>" + s + "</li>"
+def table(s, border=1, style=""):
+    return "<table border=\'{}\' style=\'{}\'>".format(border, style) + s + "</table>"
+def th(s):
+    return "<th>" + s + "</th>"
+def tr(s):
+    return "<tr>" + s + "</tr>"
+def td(s):
+    return "<td>" + s + "</td>"
 
 def style_color(s, color='blue'):
     return "<span style='color:{}'>".format(color) + s + "</span>"
@@ -35,6 +44,7 @@ def get_stats(channel):
             'created_at': r[2],
             'end_at': r[3] if r[3] > 0 else now,
         }
+    streams = OrderedDict(sorted(streams.items(), key=lambda t: t[1]["created_at"], reverse=True))
     for _id in streams:
         c.execute('''select avg(n_user) from channel_popularity where channel = \'{}\' and ts > {} and ts < {};'''.format(channel, streams[_id]['created_at'], streams[_id]['end_at']))
         result = c.fetchall()
@@ -75,21 +85,29 @@ def get_stats(channel):
     channel_html.append(top_chat_msgs)
 
     stream_html = []
+    stream_html.append(h1("最近實況記錄"))
+
+    header = ["遊戲", "開始", "結束", "持續時間(min)", "平均觀看人數", "不重複聊天人數", "每分鐘最多對話次數", "每分鐘平均對話次數"]
+    header = [th(h) for h in header]
+    row = tr("".join(header))
+    stream_html.append(row)
+
     for _id in streams:
         l = [
-            "遊戲: {}".format(streams[_id]['game']),
-            "開始: {}".format(time.strftime("%Y-%m-%d %H:%M", time.gmtime(streams[_id]['created_at'] + 8 * 3600))),
-            "結束: {}".format(time.strftime("%Y-%m-%d %H:%M", time.gmtime(streams[_id]['end_at'] + 8 * 3600))),
-            "持續時間: {} 分鐘".format((streams[_id]['end_at'] - streams[_id]['created_at']) / 60),
-            "平均觀看人數: {}".format(int(streams[_id]['avg_view_user'])),
-            "不重複聊天人數: {}".format(streams[_id]['distinct_chat_user']),
-            "每分鐘最多對話次數: {}".format(streams[_id]['max_chat_per_min']),
-            "每分鐘平均對話次數: {:.1f}".format(streams[_id]['avg_chat_per_min']),
+            "{}".format(streams[_id]['game']),
+            "{}".format(time.strftime("%Y-%m-%d %H:%M", time.gmtime(streams[_id]['created_at'] + 8 * 3600))),
+            "{}".format(time.strftime("%Y-%m-%d %H:%M", time.gmtime(streams[_id]['end_at'] + 8 * 3600))),
+            "{}".format((streams[_id]['end_at'] - streams[_id]['created_at']) / 60),
+            "{}".format(int(streams[_id]['avg_view_user'])),
+            "{}".format(streams[_id]['distinct_chat_user']),
+            "{}".format(streams[_id]['max_chat_per_min']),
+            "{:.1f}".format(streams[_id]['avg_chat_per_min']),
         ]
-        tmp = "".join([li(s) for s in l])
-        tmp = ul("stream id: {}".format(_id) + tmp)
-        stream_html.append(tmp)
+        row = "".join([td(col) for col in l])
+        row = tr(row)
+        stream_html.append(row)
+    stream_html = table("".join(stream_html), border=1, style="font-size:24px;")
 
-    msg = html_newline.join(channel_html + stream_html)
+    msg = html_newline.join(channel_html) + stream_html
     return h2(msg)
             
