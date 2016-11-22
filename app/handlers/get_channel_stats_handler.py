@@ -90,7 +90,7 @@ def get_stream_info(channel, n_top_chatters, n_top_msgs):
             'top_msgs': top_msgs,
         }
         stream_info = OrderedDict(sorted(stream_info.items(), key=lambda t: t[1]["created_at"], reverse=True))
-    conn.clos()
+    conn.close()
     return stream_info
 
 def get_stats(channel):
