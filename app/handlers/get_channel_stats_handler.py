@@ -6,6 +6,7 @@ import logging
 import time
 import json
 from collections import OrderedDict
+import math
 
 with open('config.json') as fp:
     CONFIG = json.load(fp)
@@ -79,7 +80,7 @@ def get_stream_info(channel, n_top_chatters, n_top_msgs):
             'duration_min': '{}'.format(int((end_at - created_at) / 60)),
             'n_total_chat': str(n_total_chat),
             'max_user': str(max_user),
-            'mean_user': str(int(mean_user)),
+            'mean_user': 'nan' if math.isnan(mean_user) else str(int(mean_user)),
             'unique_chat_user': str(unique_chat_user),
             'interactivity': '{:.0%}'.format(1.0 * unique_chat_user / max_user),
             'max_chat_by_min': str(max_chat_by_min),
