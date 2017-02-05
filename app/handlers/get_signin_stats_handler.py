@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 import logging
 import time
+from datetime import datetime
 import json
 from collections import OrderedDict
 import math
@@ -38,38 +39,35 @@ def get_signin_info(channel, user):
     global CONFIG
     signin_info = {}
     conn = sqlite3.connect(CONFIG['db'])
-    signins = pd.read_sql_query("select ts_day from signin where user=? and channel=? order by ts_day asc", conn, params=(user, channel))
+    signins = pd.read_sql_query("select 1 from signin where user=? and channel=?", conn, params=(user.lower(), channel))
+    count = len(signins)
+    last_signin = pd.read_sql_query("select ts_day from signin where user=? and channel=? order by ts_day desc limit 1", conn, params=(user.lower(), channel))
 
-    for i, signin in signins.iterrows():
-        signin_info[i] = {
-            'index': i,
-            'date': '{}'.format(time.strftime("%Y-%m-%d", time.gmtime(signin['ts_day'] + 8 * 3600))),
-        }
-        signin_info = OrderedDict(sorted(signin_info.items(), key=lambda t: t[1]["index"], reverse=True))
+    signin_info = {
+        'count': count,
+        'last_date': '{}'.format(time.strftime("%Y-%m-%d", time.gmtime(last_signin['ts_day'] + 8 * 3600))),
+        'last_date_ts_utc': last_signin['ts_day'],
+    }
     conn.close()
     return signin_info
 
 def get_signin_stats(channel, user):
-    header_translation = [
-        ('index', '流水號'),
-        ('date', '日期'),
-    ]
     signin_info = get_signin_info(channel, user)
-
     html_str = []
-    welcome_str = "Hi!  ㄈ{} 已經累積簽到 {} 次，阿不就好棒棒(́◉◞౪◟◉‵)".format(style_color(user, 'blue'), style_color(len(signin_info), 'red'))
+    welcome_str = "Hi!  ㄈ{} 已經累積簽到 {} 次，阿不就好棒棒(́◉◞౪◟◉‵)".format(style_color(user, 'blue'), style_color(signin_info['count'], 'red'))
     welcome_str = h2(welcome_str)
     html_str.append(welcome_str)
-    row = []
-    for header in header_translation:
-        row.append(th(header[1]))
-    html_str.append(tr("".join(row)))
-    for _id in signin_info:
-        row = []
-        for header in header_translation:
-            row.append(td(signin_info[_id][header[0]]))
-        html_str.append(tr("".join(row)))
-    html_str = table("".join(html_str), border=1, style="font-size:24px;")
+    welcome_str = "最近一次簽到在 {} 也就是{}".format(signin_info['last_date'], _decode_human_date(signin_info['last_date_ts_utc']))
+    welcome_str = h2(welcome_str)
+    html_str.append(welcome_str)
+    html_str = ''.join(html_str)
     return html_str
 
-
+def _decode_human_date(ts_utc):
+    last_date = datetime.utcfromtimestamp(ts_utc)
+    now = datetime.utcnow()
+    delta = now - last_date
+    if delta.days == 0:
+        return "今天"
+    else:
+        return " {} 天前".format(delta.days)
