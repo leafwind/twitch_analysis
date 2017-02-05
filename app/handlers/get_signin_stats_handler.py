@@ -31,7 +31,7 @@ def td(s):
     return "<td>" + str(s) + "</td>"
 
 def style_color(s, color='blue'):
-    return "<span style='color:{}'>".format(color) + s + "</span>"
+    return "<span style='color:{}'>".format(color) + str(s) + "</span>"
 
 
 def get_signin_info(channel, user):
@@ -41,7 +41,6 @@ def get_signin_info(channel, user):
     signins = pd.read_sql_query("select ts_day from signin where user=? and channel=? order by ts_day asc", conn, params=(user, channel))
 
     for i, signin in signins.iterrows():
-        print(signin['ts_day'])
         signin_info[i] = {
             'index': i,
             'date': '{}'.format(time.strftime("%Y-%m-%d", time.gmtime(signin['ts_day'] + 8 * 3600))),
@@ -55,17 +54,20 @@ def get_signin_stats(channel, user):
         ('index', '流水號'),
         ('date', '日期'),
     ]
-    stream_info = get_signin_info(channel, user)
+    signin_info = get_signin_info(channel, user)
 
     html_str = []
+    welcome_str = "Hi!  ㄈ{} 已經累積簽到 {} 次，阿不就好棒棒(́◉◞౪◟◉‵)".format(style_color(user, 'blue'), style_color(len(signin_info), 'red'))
+    welcome_str = h2(welcome_str)
+    html_str.append(welcome_str)
     row = []
     for header in header_translation:
         row.append(th(header[1]))
     html_str.append(tr("".join(row)))
-    for _id in stream_info:
+    for _id in signin_info:
         row = []
         for header in header_translation:
-            row.append(td(stream_info[_id][header[0]]))
+            row.append(td(signin_info[_id][header[0]]))
         html_str.append(tr("".join(row)))
     html_str = table("".join(html_str), border=1, style="font-size:24px;")
     return html_str
