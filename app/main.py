@@ -6,6 +6,8 @@ import time
 import calendar
 
 from handlers.get_channel_stats_handler import get_stats
+from handlers.get_signin_stats_handler import get_signin_stats
+
 application = Flask(__name__)
 application.config['PROPAGATE_EXCEPTIONS'] = True
 
@@ -28,6 +30,11 @@ def hello():
 
 def h1(s):
     return "<h1>{}</h1>".format(s)
+
+@application.route('/signin/<channel>/<user>')
+def get_signin_status_hanlder(channel, user):
+    result = get_signin_stats(channel, user)
+    return result
 
 @application.route('/follow/<channel>/<user>')
 def follow_status(channel, user):
