@@ -1,4 +1,6 @@
 from flask import Flask
+from flask import request
+from flask import jsonify
 import logging
 import requests
 import json
@@ -31,9 +33,16 @@ def hello():
 def h1(s):
     return "<h1>{}</h1>".format(s)
 
+@application.route('/signin', methods=['GET'])
+def _get_signin_status_hanlder():
+    user = request.args.get('user')
+    channel = request.args.get('channel')
+    result = get_signin_stats(channel, user, html=False)
+    return jsonify(result)
+
 @application.route('/signin/<channel>/<user>')
 def get_signin_status_hanlder(channel, user):
-    result = get_signin_stats(channel, user)
+    result = get_signin_stats(channel, user, html=True)
     return result
 
 @application.route('/follow/<channel>/<user>')

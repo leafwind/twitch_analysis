@@ -30,9 +30,27 @@ run `sudo tail -f /var/log/uwsgi/uwsgi.log` in another screen
 
 usually no need to care about nginx unless there are traffic/connection issues.
 
+## debug
+
+### HTTP 400
+
+check if all conf has been correctly set
+* `ipv6only=on` is must, otherwise it will listen twice for the same port
+e.g. `listen [::]:443 ssl ipv6only=on default_server;`
+
+* Don't include `ssl on;`
+
+### conflicting server name "bot.leafwind.tw" on 0.0.0.0:80, ignored
+check if `/etc/nginx/sites-available/twitch_analysis~` exists
+
 ## log
 
 /var/log/nginx/error.log
+
+## conf
+
+`sudo vim /etc/nginx/nginx.conf`
+`sudo vim /etc/nginx/sites-available/twitch_analysis`
 
 ## restart
 

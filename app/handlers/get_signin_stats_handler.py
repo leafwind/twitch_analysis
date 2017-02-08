@@ -42,26 +42,35 @@ def get_signin_info(channel, user):
     signins = pd.read_sql_query("select 1 from signin where user=? and channel=?", conn, params=(user.lower(), channel))
     count = len(signins)
     last_signin = pd.read_sql_query("select ts_day from signin where user=? and channel=? order by ts_day desc limit 1", conn, params=(user.lower(), channel))
-
-    signin_info = {
-        'count': count,
-        'last_date': '{}'.format(time.strftime("%Y-%m-%d", time.gmtime(last_signin['ts_day'] + 8 * 3600))),
-        'last_date_ts_utc': last_signin['ts_day'],
-    }
+    if last_signin.empty:
+        signin_info = {
+            'count': count,
+            'last_date': '{}'.format(time.strftime("%Y-%m-%d", time.gmtime(0))),
+            'last_date_ts_utc': 0,
+        }
+    else:
+        signin_info = {
+            'count': count,
+            'last_date': '{}'.format(time.strftime("%Y-%m-%d", time.gmtime(last_signin['ts_day'] + 8 * 3600))),
+            'last_date_ts_utc': last_signin['ts_day'],
+        }
     conn.close()
     return signin_info
 
-def get_signin_stats(channel, user):
+def get_signin_stats(channel, user, html=False):
     signin_info = get_signin_info(channel, user)
-    html_str = []
-    welcome_str = "Hi!  ㄈ{} 已經累積簽到 {} 次，阿不就好棒棒(́◉◞౪◟◉‵)".format(style_color(user, 'blue'), style_color(signin_info['count'], 'red'))
-    welcome_str = h2(welcome_str)
-    html_str.append(welcome_str)
-    welcome_str = "最近一次簽到在 {} 也就是{}".format(signin_info['last_date'], _decode_human_date(signin_info['last_date_ts_utc']))
-    welcome_str = h2(welcome_str)
-    html_str.append(welcome_str)
-    html_str = ''.join(html_str)
-    return html_str
+    if html:
+        html_str = []
+        welcome_str = "Hi!  ㄈ{} 已經累積簽到 {} 次，阿不就好棒棒(́◉◞౪◟◉‵)".format(style_color(user, 'blue'), style_color(signin_info['count'], 'red'))
+        welcome_str = h2(welcome_str)
+        html_str.append(welcome_str)
+        welcome_str = "最近一次簽到在 {} 也就是{}".format(signin_info['last_date'], _decode_human_date(signin_info['last_date_ts_utc']))
+        welcome_str = h2(welcome_str)
+        html_str.append(welcome_str)
+        html_str = ''.join(html_str)
+        return html_str
+    else:
+        return { 'count': signin_info['count'], 'last_date': signin_info['last_date'] }
 
 def _decode_human_date(ts_utc):
     last_date = datetime.utcfromtimestamp(ts_utc)
