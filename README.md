@@ -1,12 +1,20 @@
-# prerequest
+# Twitch Analysis Backend
 
-sudo apt-get install g++
+This is a Flask application build by: [How To Serve Flask Applications with uWSGI and Nginx on Ubuntu 14.04](https://www.digitalocean.com/community/tutorials/how-to-serve-flask-applications-with-uwsgi-and-nginx-on-ubuntu-14-04)
 
-# setup document
+Data processing by pandas, stored by sqlite3.
 
-[How To Serve Flask Applications with uWSGI and Nginx on Ubuntu 14.04](https://www.digitalocean.com/community/tutorials/how-to-serve-flask-applications-with-uwsgi-and-nginx-on-ubuntu-14-04)
+## Package Requirements
 
-## quick setup
+`sudo apt-get install g++`
+
+```
+virtualenv __
+. __/bin/activate
+pip install requirements.txt
+```
+
+## HTTPS Server Quick Setup
 
 ### Copy uWSGI Upstart Script
 
@@ -15,6 +23,10 @@ sudo apt-get install g++
 ### Copy Nginx Conf.
 
 `sudo cp twitch_analysis_nginx.conf /etc/nginx/sites-available/twitch_analysis`
+
+### ACME (Automatic Certificate Management Environment)
+
+[acme-nginx](https://github.com/kshcherban/acme-nginx)
 
 # uwsgi
 
@@ -38,15 +50,6 @@ run `sudo tail -f /var/log/uwsgi/uwsgi.log` in another screen
 
 # nginx
 
-usually no need to care about nginx unless there are traffic/connection issues.
-
-## setup
-
-
-### ACME (Automatic Certificate Management Environment)
-
-[acme-nginx](https://github.com/kshcherban/acme-nginx)
-
 ## debug
 
 ### HTTP 400
@@ -66,7 +69,12 @@ check if `/etc/nginx/sites-available/twitch_analysis~` exists
 
 ## conf
 
+### Global conf.
+
 `sudo vim /etc/nginx/nginx.conf`
+
+### Site conf.
+
 `sudo vim /etc/nginx/sites-available/twitch_analysis`
 
 ## restart
