@@ -30,6 +30,14 @@ run `sudo tail -f /var/log/uwsgi/uwsgi.log` in another screen
 
 usually no need to care about nginx unless there are traffic/connection issues.
 
+## setup
+
+`sudo cp twitch_analysis.conf /etc/nginx/sites-available/twitch_analysis`
+
+### ACME (Automatic Certificate Management Environment)
+
+[acme-nginx](https://github.com/kshcherban/acme-nginx)
+
 ## debug
 
 ### HTTP 400
