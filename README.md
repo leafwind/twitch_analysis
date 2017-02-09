@@ -6,6 +6,16 @@ sudo apt-get install g++
 
 [How To Serve Flask Applications with uWSGI and Nginx on Ubuntu 14.04](https://www.digitalocean.com/community/tutorials/how-to-serve-flask-applications-with-uwsgi-and-nginx-on-ubuntu-14-04)
 
+## quick setup
+
+### Copy uWSGI Upstart Script
+
+`sudo cp twitch_analysis_uwsgi.conf /etc/init/twitch_analysis.conf`
+
+### Copy Nginx Conf.
+
+`sudo cp twitch_analysis_nginx.conf /etc/nginx/sites-available/twitch_analysis`
+
 # uwsgi
 
 ## Upstart Script
@@ -32,7 +42,6 @@ usually no need to care about nginx unless there are traffic/connection issues.
 
 ## setup
 
-`sudo cp twitch_analysis.conf /etc/nginx/sites-available/twitch_analysis`
 
 ### ACME (Automatic Certificate Management Environment)
 
