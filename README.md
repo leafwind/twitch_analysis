@@ -2,6 +2,10 @@
 
 This is a Flask application build by: [How To Serve Flask Applications with uWSGI and Nginx on Ubuntu 14.04](https://www.digitalocean.com/community/tutorials/how-to-serve-flask-applications-with-uwsgi-and-nginx-on-ubuntu-14-04)
 
+16.04:
+
+[How To Serve Flask Applications with uWSGI and Nginx on Ubuntu 16.04](https://www.digitalocean.com/community/tutorials/how-to-serve-flask-applications-with-uwsgi-and-nginx-on-ubuntu-16-04)
+
 Data processing by pandas, stored by sqlite3.
 
 ## Package Requirements
@@ -16,9 +20,13 @@ pip install requirements.txt
 
 ## HTTPS Server Quick Setup
 
-### Copy uWSGI Upstart Script
+### Copy uWSGI Upstart Script (14.04)
 
 `sudo cp twitch_analysis_uwsgi.conf /etc/init/twitch_analysis.conf`
+
+### Copy uWSGI Systemd Unit File (16.04)
+
+`sudo cp twitch_analysis.service /etc/systemd/system/twitch_analysis.service`
 
 ### Copy Nginx Conf.
 

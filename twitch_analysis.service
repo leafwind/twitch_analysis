@@ -1,0 +1,14 @@
+[Unit]
+Description=uWSGI instance to serve twitch_analysis
+After=network.target
+
+[Service]
+User=leafbot
+Group=www-data
+WorkingDirectory=/home/leafbot/git/twitch_analysis/
+Environment="PATH=/home/leafbot/git/twitch_analysis/__/bin"
+ExecStart=/home/leafbot/git/twitch_analysis/__/bin/uwsgi --ini uwsgi.ini
+
+[Install]
+WantedBy=multi-user.target
+
