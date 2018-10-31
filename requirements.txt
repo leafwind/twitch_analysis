@@ -1,4 +1,4 @@
-Flask==0.11.1
+flask==0.12.3
 uWSGI==2.0.14
 Cython==0.25.1
 numpy==1.11.2
