@@ -93,6 +93,33 @@ def get_stream_info(channel, n_top_chatters, n_top_msgs):
     conn.close()
     return stream_info
 
+
+def get_signin_ranking(channel):
+    global CONFIG
+    stream_info = {}
+    conn = sqlite3.connect(CONFIG['db'])
+    result = pd.read_sql_query("select user, count(1) as count, strftime('%Y-%m-%d', datetime(max(ts_day), 'unixepoch')) as last_signin_date from signin where channel = \'{}\' group by user order by count(1) desc".format(channel), conn)
+
+    header_translation = [
+        ('user', '使用者'),
+        ('count', '簽到次數'),
+        ('last_signin_date', '最後簽到日期')
+    ]
+
+    html_str = []
+    row = []
+    for header in header_translation:
+        row.append(th(header[1]))
+    html_str.append(tr("".join(row)))
+    for index, log in result.iterrows():
+        row = []
+        for header in header_translation:
+            value = str(log[header[0]])
+            row.append(td(value))
+        html_str.append(tr("".join(row)))
+    html_str = table("".join(html_str), border=1, style="font-size:24px;")
+    return html_str
+
 def get_stats(channel):
     header_translation = [
         ('game', '遊戲名稱'),

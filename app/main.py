@@ -7,7 +7,7 @@ import json
 import time
 import calendar
 
-from handlers.get_channel_stats_handler import get_stats
+from handlers.get_channel_stats_handler import get_stats, get_signin_ranking
 from handlers.get_signin_stats_handler import get_signin_stats
 
 application = Flask(__name__)
@@ -32,6 +32,12 @@ def hello():
 
 def h1(s):
     return "<h1>{}</h1>".format(s)
+
+@application.route('/signin_ranking/<channel>')
+def get_signin_ranking_handler(channel):
+    result = get_signin_ranking(channel)
+    return result
+
 
 @application.route('/signin', methods=['GET'])
 def _get_signin_status_hanlder():

@@ -3,4 +3,4 @@ uWSGI==2.0.14
 Cython==0.25.1
 numpy==1.11.2
 pandas==0.19.0
-requests==2.13.0
+requests>=2.20.0

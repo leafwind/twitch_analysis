@@ -14,3 +14,7 @@ virtualenv __
 pip install requirements.txt
 ```
 
+# Deploy the code change
+
+`sudo systemctl restart twitch_analysis_uwsgi`
+`tail -f /var/log/uwsgi/uwsgi.log`
